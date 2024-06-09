@@ -1,0 +1,11 @@
+/* We have scoped this css class to home.module.shape */
+/* CSS modules are alternative to tailwind */
+
+/* This creates a triangle shape */
+.shape {
+  height: 0;
+  width: 0;
+  border-bottom: 30px solid black;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+}

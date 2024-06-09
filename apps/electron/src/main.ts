@@ -36,7 +36,7 @@ app.on("ready", async () => {
   win.loadURL(url);
   win.show();
 
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 });
 
 // Quit the app once all windows are closed

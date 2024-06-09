@@ -8,7 +8,7 @@
   },
   "homepage": "https://quran.com",
   "scripts": {
-    "dist": "electron-builder --dir",
+    "dist": "electron-builder --linux ",
     "postinstall": "electron-builder install-app-deps",
     "start": "NODE_ENV=development electron .",
     "build": "swc ./src -d main",
