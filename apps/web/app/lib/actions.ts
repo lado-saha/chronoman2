@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import bcrypt from 'bcryptjs';
-import { Site, StatusModel, User } from './models';
+import { Activity, Site, TaskStatus, User, Worker } from './models';
 
 const BASE_URL = process.env.API_BASE_URL;
 // We create a form schema taking into accoun the possible errors and warning
@@ -45,33 +45,32 @@ const UserCreationFormSchema = z.object({
   }),
 });
 
+const WorkerFormSchema = z.object({
+  id: z.number().optional(),
+  name: z.string(),
+});
+
 const SiteFormSchema = z.object({
   id: z.number().optional(),
   name: z.string().max(255, 'Name must be at most 255 characters long.'),
-  town: z.string().max(255, 'Must be at most 255 characters long.'),
-  country: z.string().max(255, 'Must be at most 255 characters long.'),
-  region: z.string().max(255, 'Must be at most 255 characters long.'),
-  description: z.string().optional(), // TEXT can be optional or empty
-  startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid start date format. Use a valid date string.',
-  }),
-  budget: z.coerce
-    .number()
-    .gt(0, { message: 'Please enter an amount greater than $0.' }),
-  duration: z.coerce
-    .number()
-    .gte(1, { message: 'Please enter a duration greater than 1.' }),
-  stakeholders: z
-    .string()
-    .max(255, 'Stakeholders must be at most 255 characters long.'),
   latitude: z.coerce
     .number()
-    .gte(-180, { message: 'Latitude is between -180° to 180°' })
-    .lte(180, { message: 'Latitude is between -180° to 180°' }),
+    .gte(-180, { message: 'Latitude must be between -180° to 180°' })
+    .lte(180, { message: 'Latitude must be between -180° to 180°' }),
   longitude: z.coerce
     .number()
-    .gte(-180, { message: 'Longitude is between -90° to 90°' })
-    .lte(180, { message: 'Longitude is between -90° to 90°' }),
+    .gte(-180, { message: 'Longitude must be between -90° to 90°' })
+    .lte(180, { message: 'Longitude must be between -90° to 90°' }),
+  town: z.string().max(255, 'Town must be at most 255 characters long.'),
+  country: z.string().max(255, 'Country must be at most 255 characters long.'),
+  region: z.string().max(255, 'Region must be at most 255 characters long.'),
+  description: z.string().optional(),
+});
+
+const ActivityFormSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().max(255, 'Name must be at most 255 characters long.'),
+  description: z.string(),
 });
 
 // This is temporary until @types/react-dom is updated
@@ -80,6 +79,14 @@ export type State = {
     customerId?: string[];
     amount?: string[];
     status?: string[];
+  };
+  message?: string | null;
+};
+
+export type WorkerState = {
+  errors?: {
+    id?: string[];
+    name?: string[];
   };
   message?: string | null;
 };
@@ -97,27 +104,37 @@ export type UserState = {
 
 export type SiteState = {
   errors?: {
-    name?: string[];
     id?: string[];
-    startDate?: string[];
-    duration?: string[];
-    status?: string[];
-    stakeholders?: string[];
+    name?: string[];
     latitude?: string[];
     longitude?: string[];
-    budget?: string[];
     town?: string[];
     country?: string[];
     region?: string[];
+    description?: string[];
+  };
+  message?: string | null;
+};
+
+export type ActivityState = {
+  errors?: {
+    name?: string[];
+    description?: string[];
   };
   message?: string | null;
 };
 
 // Validators
+const CreateActivity = ActivityFormSchema.omit({ id: true });
+const UpdateActivity = ActivityFormSchema.omit({ id: true });
+
 const CreateUser = UserCreationFormSchema.omit({ id: true });
 const CreateSite = SiteFormSchema.omit({ id: true });
+const UpdateSite = SiteFormSchema.omit({ id: true });
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+const CreateWorker = WorkerFormSchema.omit({ id: true });
+const UpdateWorker = WorkerFormSchema.omit({ id: true });
 
 /**
  * Notice that formData is passed automatically by setting this to the action attribute of a form
@@ -285,11 +302,6 @@ export async function createSite(prevState: SiteState, formData: FormData) {
   const validatedFields = SiteFormSchema.safeParse({
     name: formData.get('name'),
     description: formData.get('description'),
-    startDate: formData.get('startDate'),
-    duration: formData.get('duration'),
-    status: formData.get('status'),
-    budget: formData.get('budget'),
-    stakeholders: formData.get('stakeholders'),
     region: formData.get('region'),
     country: formData.get('country'),
     town: formData.get('town'),
@@ -308,10 +320,7 @@ export async function createSite(prevState: SiteState, formData: FormData) {
 
   const site: Site = {
     id: 0,
-    // or a proper id if available
     ...validatedFields.data,
-    totalActivityDuration: 0,
-    status: StatusModel.PLANNED,
   };
 
   console.log(site);
@@ -341,7 +350,6 @@ export async function createSite(prevState: SiteState, formData: FormData) {
 }
 export async function updateSite(
   id: number,
-
   oldSite: Site,
   prevState: SiteState,
   formData: FormData,
@@ -350,17 +358,13 @@ export async function updateSite(
   const validatedFields = SiteFormSchema.safeParse({
     name: formData.get('name'),
     description: formData.get('description'),
-    startDate: formData.get('startDate'),
-    duration: formData.get('duration'),
-    status: formData.get('status'),
-    budget: formData.get('budget'),
-    stakeholders: formData.get('stakeholders'),
     region: formData.get('region'),
     country: formData.get('country'),
     town: formData.get('town'),
     latitude: formData.get('latitude'),
     longitude: formData.get('longitude'),
   });
+
   // If form validation fails, return errors early. Otherwise, continue.
   if (!validatedFields.success) {
     return {
@@ -372,8 +376,6 @@ export async function updateSite(
   const site: Site = {
     id: 0,
     ...validatedFields.data,
-    totalActivityDuration: oldSite.totalActivityDuration,
-    status: oldSite.status,
   };
 
   console.log(site);
@@ -392,7 +394,6 @@ export async function updateSite(
     }
 
     const createdSite = await response.json();
-    console.log(`site updated:${createdSite} `);
   } catch (error) {
     console.error(error);
     return { message: 'Error updating site' };
@@ -400,6 +401,112 @@ export async function updateSite(
   revalidatePath('/dashboard/sites');
   // Note that redirect throws an error inorder to function and so we shoulnot use it inside a try catch block
   redirect('/dashboard/sites');
+}
+
+export async function createActivity(
+  siteId: number,
+  prevState: ActivityState,
+  formData: FormData,
+) {
+  // We create the user the we navigate to the login
+  const validatedFields = CreateActivity.safeParse({
+    name: formData.get('name'),
+    description: formData.get('description'),
+  });
+
+  // If form validation fails, return errors early. Otherwise, continue.
+  if (!validatedFields.success) {
+    console.log(validatedFields.error.flatten().fieldErrors);
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to create activity.',
+    };
+  }
+
+  const activity: Activity = {
+    id: 0,
+    ...validatedFields.data,
+    tasks: [],
+  };
+
+  console.log(activity);
+
+  try {
+    const response = await fetch(`${BASE_URL}/sites/${siteId}/activities`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(activity),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create site');
+    }
+
+    const createdSite = await response.json();
+    console.log(`site created:${createdSite} `);
+  } catch (error) {
+    console.error(error);
+    return { message: 'Error creating site' };
+  }
+
+  revalidatePath(`/dashboard/sites/${siteId}/activities`);
+  redirect(`/dashboard/sites/${siteId}/activities`);
+  // Note that redirect throws an error inorder to function and so we shoulnot use it inside a try catch block
+}
+export async function updateActivity(
+  oldActivity: Activity,
+  siteId: number,
+  prevState: ActivityState,
+  formData: FormData,
+) {
+  // We create the user the we navigate to the login
+  const validatedFields = UpdateActivity.safeParse({
+    name: formData.get('name'),
+    description: formData.get('description'),
+  });
+
+  // If form validation fails, return errors early. Otherwise, continue.
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create user.',
+    };
+  }
+
+  const activity: Activity = {
+    id: oldActivity.id,
+    ...validatedFields.data,
+    tasks: [],
+  };
+
+  console.log(activity);
+
+  try {
+    const response = await fetch(
+      `${BASE_URL}/sites/${siteId}/activities/${activity.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activity),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to update activity');
+    }
+
+    const createdActivity = await response.json();
+    console.log(createdActivity);
+  } catch (error) {
+    console.error(error);
+    return { message: 'Error updating activity' };
+  }
+  revalidatePath(`/dashboard/sites/${siteId}/activities`);
+  redirect(`/dashboard/sites/${siteId}/activities`);
 }
 
 export async function deleteSite(id: string) {
@@ -417,5 +524,128 @@ export async function deleteSite(id: string) {
   } catch (error) {
     console.error(error);
     return { message: 'Error deleting site' };
+  }
+}
+
+export async function deleteActivity(id: string, siteId: number) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/sites/${siteId}/activities/${id}`,
+      {
+        method: 'DELETE',
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to delete activity');
+    }
+    console.log(`Successful Deletion `);
+    revalidatePath(`/dashboard/sites/${siteId}/activities`);
+    //   // Note that redirect throws an error inorder to function and so we shoulnot use it inside a try catch block
+  } catch (error) {
+    console.error(error);
+    return { message: 'Error deleting Activity' };
+  }
+}
+
+// To CUD worker
+export async function createWorker(prevState: WorkerState, formData: FormData) {
+  const validatedFields = WorkerFormSchema.safeParse({
+    name: formData.get('name'),
+  });
+
+  if (!validatedFields.success) {
+    console.log(validatedFields.error.flatten().fieldErrors);
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to create worker.',
+    };
+  }
+
+  const worker: Worker = {
+    id: 0, // or a proper id if available
+    ...validatedFields.data,
+  };
+
+  try {
+    const response = await fetch(`${BASE_URL}/workers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(worker),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create worker');
+    }
+
+    const createdWorker = await response.json();
+    console.log(`Worker created: ${JSON.stringify(createdWorker)}`);
+  } catch (error) {
+    console.error(error);
+    return { message: 'Error creating worker' };
+  }
+  revalidatePath('/dashboard/workers');
+  redirect('/dashboard/workers');
+}
+export async function updateWorker(
+  id: number,
+  oldWorker: Worker,
+  prevState: WorkerState,
+  formData: FormData,
+) {
+  const validatedFields = WorkerFormSchema.safeParse({
+    name: formData.get('name'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to update worker.',
+    };
+  }
+
+  const worker: Worker = {
+    id: oldWorker.id,
+    ...validatedFields.data,
+  };
+
+  try {
+    const response = await fetch(`${BASE_URL}/workers/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(worker),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update worker');
+    }
+
+    const updatedWorker = await response.json();
+    console.log(`Worker updated: ${JSON.stringify(updatedWorker)}`);
+  } catch (error) {
+    console.error(error);
+    return { message: 'Error updating worker' };
+  }
+  revalidatePath('/dashboard/workers');
+  redirect('/dashboard/workers');
+}
+export async function deleteWorker(id: string) {
+  try {
+    const response = await fetch(`${BASE_URL}/workers/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete worker');
+    }
+    console.log(`Worker ${id} successfully deleted`);
+    revalidatePath('/dashboard/workers');
+  } catch (error) {
+    console.error(error);
+    return { message: 'Error deleting worker' };
   }
 }

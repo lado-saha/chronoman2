@@ -7,25 +7,74 @@ import {
 
 // Type alias for site
 
-export type Site = {
+export interface Site {
   id: number;
   name: string;
-  startDate: string;
-  status: StatusModel;
-  createdAt?: string;
-  updatedAt?: string;
-  description?: string;
-  duration: number;
-  stakeholders?: string;
-  budget: number;
+  activities?: Activity[];
   latitude: number;
   longitude: number;
-  region: string;
   town: string;
   country: string;
-  // user: String,
-  totalActivityDuration: number;
-};
+  region: string;
+  description?: string;
+}
+
+export interface Activity {
+  id: number;
+  site?: Site;
+  tasks: Task[];
+  name: string;
+  description: string;
+}
+
+export interface Task {
+  id: number;
+  activity: Activity;
+  name: string;
+  duration: number;
+  description: string;
+  status: TaskStatus;
+  workers: Worker[];
+  budget: number;
+  realStartDate: Date | null;
+  realEndDate: Date | null;
+}
+
+// export interface PredefinedTask {
+//   id: number;
+//   predefinedActivity: PredefinedActivity;
+//   description: string;
+//   name: string;
+// }
+
+// export interface PredefinedActivity {
+//   id: number;
+//   name: string;
+//   description: string;
+//   predefinedTasks: PredefinedTask[];
+// }
+export interface Worker {
+  id: number;
+  name: string;
+  tasks?: Task[];
+}
+
+// export interface User {
+//   id: string;
+//   password: string;
+//   name?: string;
+//   email: string;
+//   role: string;
+//   createdAt?: Date;
+//   updatedAt?: Date;
+//   lastLogin?: Date;
+// }
+
+// export enum TaskStatus {
+//   PENDING = 'PENDING',
+//   IN_PROGRESS = 'IN_PROGRESS',
+//   COMPLETED = 'COMPLETED',
+// }
 
 export function formatGeoString(site: Site): string {
   const latDirection = site.latitude >= 0 ? 'N' : 'S';
@@ -38,7 +87,7 @@ export function formatGeoString(site: Site): string {
     4,
   )}° ${longDirection}`;
 
-  return `${site.country}, ${site.region}, ${site.town} - ${formattedLatitude}, ${formattedLongitude}`;
+  return `${formattedLatitude}, ${formattedLongitude}`;
 }
 
 // Type alias for PredefinedActivity
@@ -56,34 +105,8 @@ export type PredefinedTask = {
   description?: string;
 };
 
-// Type alias for Activity
-export type Activity = {
-  id: number;
-  predefinedActivityId: number;
-  siteId: number;
-  status: StatusModel;
-  duration: number;
-  comment?: string;
-  startDate: string;
-  realEndDate?: string;
-  createdAt: string;
-  updatedAt: string;
-  totalTaskDuration: number;
-};
 
-// Type alias for Task
-export type Task = {
-  id: number;
-  activityId: number;
-  predefinedTaskId: number;
-  status: StatusModel;
-  duration: number;
-  comment?: string;
-  startDate: string;
-  realEndDate?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+
 
 // Type alias for User
 export type User = {
@@ -97,7 +120,7 @@ export type User = {
   lastLogin?: string;
 };
 
-export enum StatusModel {
+export enum TaskStatus {
   PLANNED = 'PLANNED',
   COMPLETED = 'COMPLETED',
   ONGOING = 'ONGOING',
@@ -108,71 +131,71 @@ export enum StatusModel {
 
 export const statusOptions = [
   {
-    value: StatusModel.PLANNED,
+    value: TaskStatus.PLANNED,
     color: 'bg-gray-500',
     icon: CalendarDaysIcon,
   },
   {
-    value: StatusModel.ONGOING,
+    value: TaskStatus.ONGOING,
     color: 'bg-blue-500',
     icon: ClockIcon,
   },
 
   {
-    value: StatusModel.ONGOING_OVERTIME,
+    value: TaskStatus.ONGOING_OVERTIME,
     color: 'bg-yellow-500',
     icon: ClockIcon,
   },
   {
-    value: StatusModel.COMPLETED,
+    value: TaskStatus.COMPLETED,
     color: 'bg-green-500',
     icon: CheckIcon,
   },
   {
-    value: StatusModel.COMPLETED_EARLY,
+    value: TaskStatus.COMPLETED_EARLY,
     color: 'bg-green-700',
     icon: CheckIcon,
   },
   {
-    value: StatusModel.COMPLETED_OVERTIME,
+    value: TaskStatus.COMPLETED_OVERTIME,
     color: 'bg-red-500',
     icon: CheckIcon,
   },
 ];
 
-export function getStatusText(status: StatusModel): string {
+export function getStatusText(status: TaskStatus): string {
   switch (status) {
-    case StatusModel.PLANNED:
+    case TaskStatus.PLANNED:
       return 'Planned';
-    case StatusModel.COMPLETED:
+    case TaskStatus.COMPLETED:
       return 'Completed';
-    case StatusModel.ONGOING:
+    case TaskStatus.ONGOING:
       return 'Ongoing';
-    case StatusModel.ONGOING_OVERTIME:
+    case TaskStatus.ONGOING_OVERTIME:
       return 'Ongoing Overtime';
-    case StatusModel.COMPLETED_EARLY:
+    case TaskStatus.COMPLETED_EARLY:
       return 'Completed Early';
-    case StatusModel.COMPLETED_OVERTIME:
+    case TaskStatus.COMPLETED_OVERTIME:
       return 'Completed Undertime';
     default:
       return 'Unknown Status';
   }
 }
 
-export function getStatusFromText(text: string | null): StatusModel {
+export function getStatusFromText(text: string | null): TaskStatus {
   switch (text?.toLowerCase()) {
     case 'planned':
-      return StatusModel.PLANNED;
+      return TaskStatus.PLANNED;
     case 'completed':
-      return StatusModel.COMPLETED;
+      return TaskStatus.COMPLETED;
     case 'ongoing':
-      return StatusModel.ONGOING;
+      return TaskStatus.ONGOING;
     case 'ongoing overtime':
-      return StatusModel.ONGOING_OVERTIME;
+      return TaskStatus.ONGOING_OVERTIME;
     case 'completed early':
-      return StatusModel.COMPLETED_EARLY;
+      return TaskStatus.COMPLETED_EARLY;
     case 'completed undertime':
-      return StatusModel.COMPLETED_OVERTIME;
+      return TaskStatus.COMPLETED_OVERTIME;
     default:
       throw Error('Invalid status');
   }

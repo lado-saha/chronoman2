@@ -14,8 +14,6 @@
     "web": "pnpm --filter=./apps/web"
   },
   "devDependencies": {
-    "@nextelectron/eslint-config": "workspace:^",
-    "@nextelectron/typescript-config": "workspace:^",
     "dprint": "^0.45.1",
     "turbo": "latest"
   },

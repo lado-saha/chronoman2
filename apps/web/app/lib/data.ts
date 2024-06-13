@@ -13,7 +13,7 @@ import {
 import { formatCurrency } from './utils';
 // Use this to avoid caching and thus enable dynamic rendering
 import { unstable_noStore as noStore } from 'next/cache';
-import { Site } from './models';
+import { Activity, Site, Worker } from './models';
 
 const BASE_URL = process.env.API_BASE_URL;
 
@@ -84,6 +84,101 @@ export async function fetchFilteredSites(query: string, currentPage: number) {
 
 export async function fetchSitesPages(query: string) {
   const response = await fetch(`${BASE_URL}/sites/count`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    console.log(response.statusText);
+    throw new Error(
+      `Failed to fetch total number of pages.${response.statusText}`,
+    );
+  }
+
+  return response.json().then((data) => {
+    const totalPages = Math.ceil(data / ITEMS_PER_PAGE);
+    return totalPages;
+  });
+}
+
+//  For activity
+export async function fetchActivities(siteId: number) {
+  const response = await fetch(`${BASE_URL}/sites/${siteId}/activities`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  try {
+    if (!response.ok) {
+      throw new Error('Failed to fetch activities.' + response.statusText);
+    }
+
+    const activities: Activity[] = await response.json();
+    return activities;
+  } catch (error) {
+    throw new Error(`Failed to fetch activity`);
+  }
+}
+
+export async function fetchActivityById(id: number, siteId: number) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/sites/${siteId}/activities/${id}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch activity.');
+    }
+
+    const activity: Activity = await response.json();
+    return activity;
+  } catch (error) {
+    throw new Error(`Failed to fetch activity: ${error}`);
+  }
+}
+
+export async function fetchFilteredActivities(
+  query: string,
+  currentPage: number,
+  siteId: number,
+) {
+  const size = ITEMS_PER_PAGE;
+  const response = await fetch(
+    `${BASE_URL}/sites/${siteId}/activities?name=${query}&page=${currentPage}&size=${size}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.log('Failed' + response.status);
+    // throw new Error('Failed to fetch activity. {}' + response.json());
+  }
+
+  const activities: Activity[] = await response.json();
+  console.log(activities);
+  return activities;
+}
+
+export async function fetchActivitiesPages(query: string, siteId: number) {
+  const response = await fetch(`${BASE_URL}/sites/${siteId}/activities/count`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -325,4 +420,145 @@ export async function getUser(email: string) {
     console.error('Failed to fetch user:', error);
     throw new Error('Failed to fetch user.');
   }
+}
+
+//  Fetching Wroker
+
+export async function fetchWorkers() {
+  const response = await fetch(`${BASE_URL}/workers`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  try {
+    if (!response.ok) {
+      throw new Error('Failed to fetch workers.' + response.statusText);
+    }
+
+    const workers: Worker[] = await response.json();
+    return workers;
+  } catch (error) {
+    throw new Error(`Failed to fetch workers: ${error}`);
+  }
+}
+
+export async function fetchWorkerById(id: number) {
+  try {
+    const response = await fetch(`${BASE_URL}/workers/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch worker.');
+    }
+
+    const worker: Worker = await response.json();
+    return worker;
+  } catch (error) {
+    throw new Error(`Failed to fetch worker: ${error}`);
+  }
+}
+
+export async function fetchFilteredWorkers(query: string, currentPage: number) {
+  const size = ITEMS_PER_PAGE;
+  const response = await fetch(
+    `${BASE_URL}/workers?name=${query}&page=${currentPage}&size=${size}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.log('Failed' + response.status);
+    // throw new Error('Failed to fetch workers. {}' + response.json());
+  }
+
+  const workers: Worker[] = await response.json();
+  console.log(workers);
+  return workers;
+}
+
+export async function fetchWorkersPages(query: string) {
+  const response = await fetch(`${BASE_URL}/workers/count`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    console.log(response.statusText);
+    throw new Error(
+      `Failed to fetch total number of pages.${response.statusText}`,
+    );
+  }
+
+  return response.json().then((data) => {
+    const totalPages = Math.ceil(data / ITEMS_PER_PAGE);
+    return totalPages;
+  });
+}
+
+// Stats for site
+export async function fetchSiteCompletionPercentage(siteId: number) {
+  const response = await fetch(`${BASE_URL}/api/sites/${siteId}/completion`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch completion percentage.');
+  }
+
+  const percentage: number = await response.json();
+  return percentage;
+}
+
+export async function fetchSizeTotalBudget(siteId: number) {
+  const response = await fetch(`${BASE_URL}/api/sites/${siteId}/budget`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch total budget.');
+  }
+
+  const budget: number = await response.json();
+  return budget;
+}
+
+export async function fetchWorkersFromSite(siteId: number) {
+  const response = await fetch(`${BASE_URL}/api/sites/${siteId}/workers`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch workers from site.');
+  }
+
+  const workers: Worker[] = await response.json();
+  return workers;
 }

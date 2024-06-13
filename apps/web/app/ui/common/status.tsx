@@ -1,8 +1,8 @@
 import React from 'react';
 import clsx from 'clsx';
-import { StatusModel, getStatusText, statusOptions } from '@/app/lib/models';
+import { TaskStatus, getStatusText, statusOptions } from '@/app/lib/models';
 
-export default function Status({ status }: { status: StatusModel }) {
+export default function Status({ status }: { status: TaskStatus }) {
   // console.log(status)
   const statusOption = statusOptions.find((option) => option.value === status);
 

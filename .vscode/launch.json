@@ -2,6 +2,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "ChronomanApplication",
+      "request": "launch",
+      "mainClass": "com.minsih.chronoman.ChronomanApplication",
+      "projectName": "backend_"
+    },
+    {
+      "type": "java",
       "name": "Spring Boot-ChronomanApplication<backend>",
       "request": "launch",
       "cwd": "${workspaceFolder}",

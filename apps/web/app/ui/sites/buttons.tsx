@@ -1,5 +1,6 @@
 // import { deleteSite } from '@/app/lib/actions';
 import { deleteSite } from '@/app/lib/actions';
+import { ChartBarIcon, ChartBarSquareIcon } from '@heroicons/react/20/solid';
 import {
   ArrowTopRightOnSquareIcon,
   PencilIcon,
@@ -24,11 +25,21 @@ export function ConsultSitesActivities({ id }: { id: number }) {
   return (
     <Link
       href={`/dashboard/sites/${id}/activities`}
-      className="flex h-10 items-center rounded-lg border px-2 text-md font-medium hover:bg-gray-100"
-
+      className="text-md flex h-10 items-center rounded-lg border px-2 font-medium hover:bg-gray-100"
     >
       <span className="hidden md:block">Activities</span>{' '}
       <ArrowTopRightOnSquareIcon className="h-5 md:ml-2" />
+    </Link>
+  );
+}
+export function ConsultStatistics({ id }: { id: number }) {
+  return (
+    <Link
+      href={`/dashboard/sites/${id}/stats`}
+      className="text-md flex h-10 items-center rounded-lg border px-2 font-medium hover:bg-gray-100"
+    >
+      <span className="hidden md:block">Stats</span>{' '}
+      <ChartBarIcon className="h-5 md:ml-2" />
     </Link>
   );
 }
@@ -37,9 +48,10 @@ export function UpdateSite({ id }: { id: number }) {
   return (
     <Link
       href={`/dashboard/sites/${id}/edit`}
-      className="rounded-md border p-2 hover:bg-gray-100"
+      className="text-md flex h-10 items-center rounded-lg border px-2 font-medium hover:bg-gray-100"
     >
-      <PencilIcon className="w-5" />
+      <span className="hidden md:block">Update</span>{' '}
+      <PencilIcon className="h-5 md:ml-2" />
     </Link>
   );
 }
@@ -64,7 +76,7 @@ export function DeleteSite({ id }: { id: number }) {
 
   return (
     <form action={deleteSiteWithId}>
-      <button className="rounded-md bg-red-300  border p-2 hover:bg-red-500">
+      <button className="rounded-md border  bg-red-300 p-2 hover:bg-red-500">
         <span className="sr-only">Delete</span>
         <TrashIcon className="w-5" />
       </button>
